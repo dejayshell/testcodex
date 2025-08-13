@@ -1,4 +1,5 @@
 import { mat4Perspective, mat4LookAt, mat4Multiply, mat4Invert, vec4TransformMat4, vec3Sub, vec3Cross, vec3Normalize } from './math.js';
+import { loadSplat } from './splat.js';
 
 async function init() {
   if (!navigator.gpu) {
@@ -33,14 +34,20 @@ async function init() {
   const vertexBuffer = device.createBuffer({size: quadVertices.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST});
   device.queue.writeBuffer(vertexBuffer, 0, quadVertices);
 
-  const gaussians = new Float32Array([
-    // x,y,z,radius,r,g,b,1
-    0,0,0,0.5, 1,0,0,1,
-    1,0,0,0.3, 0,1,0,1,
-    -1,0,0,0.3, 0,0,1,1
-  ]);
+  let gaussians;
+  try {
+    gaussians = await loadSplat('./model.splat');
+  } catch (e) {
+    console.warn('loadSplat failed, using demo data', e);
+    gaussians = new Float32Array([
+      // x,y,z,radius,r,g,b,a
+      0,0,0,0.5, 1,0,0,1,
+      1,0,0,0.3, 0,1,0,1,
+      -1,0,0,0.3, 0,0,1,1
+    ]);
+  }
   const instanceBuffer = device.createBuffer({size: gaussians.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST});
-  device.queue.writeBuffer(instanceBuffer,0,gaussians);
+  device.queue.writeBuffer(instanceBuffer, 0, gaussians);
 
   const shader = `
 struct Camera {
